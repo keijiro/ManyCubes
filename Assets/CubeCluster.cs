@@ -60,6 +60,9 @@ public class CubeCluster : MonoBehaviour
     XXHash _hashTheta = new XXHash(2842);
     XXHash _hashPhi = new XXHash(1394);
     XXHash _hashVPhi = new XXHash(894);
+    XXHash _hashSelect = new XXHash(4384);
+
+    MaterialPropertyBlock _materialOption;
 
     float GetDistance(int index)
     {
@@ -92,6 +95,9 @@ public class CubeCluster : MonoBehaviour
 
     void Update()
     {
+        if (_materialOption == null)
+            _materialOption  = new MaterialPropertyBlock();
+
         for (var i = 0; i < _cubeCount; i++)
         {
             var distance = GetDistance(i);
@@ -104,9 +110,15 @@ public class CubeCluster : MonoBehaviour
 
             var matrix = Matrix4x4.TRS(position, rotation, Vector3.one * scale);
 
+            var select = _hashSelect.Range(0, 16, i);
+            _materialOption.SetVector("_select", new Vector2(
+                (select / 4) * 0.25f,
+                (select % 4) * 0.25f
+            ));
+
             Graphics.DrawMesh(
                 _mesh, matrix, _material,
-                0, null, 0, null);
+                0, null, 0, _materialOption);
         }
     }
 }

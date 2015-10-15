@@ -211,7 +211,7 @@ MonoBehaviour:
   _minScale: -.200000003
   _maxScale: 1
   _mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
-  _material: {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  _material: {fileID: 2100000, guid: 8bc682b0d8cd74928beb05ec035219a3, type: 2}
 --- !u!4 &1080375955
 Transform:
   m_ObjectHideFlags: 0
