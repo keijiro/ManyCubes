@@ -11,6 +11,11 @@ public class CubeCluster : MonoBehaviour
     [SerializeField, Range(0, 1)]
     float _transition = 0.0f;
 
+    public float transition {
+        get { return _transition; }
+        set { _transition = value; }
+    }
+
     [Space(10)]
     [SerializeField]
     float _thetaRange = 75;
@@ -48,9 +53,6 @@ public class CubeCluster : MonoBehaviour
 
     [Space(10)]
     [SerializeField]
-    Mesh _mesh;
-
-    [SerializeField]
     Material _material;
 
     XXHash _hashDistance = new XXHash(0);
@@ -62,6 +64,7 @@ public class CubeCluster : MonoBehaviour
     XXHash _hashVPhi = new XXHash(894);
     XXHash _hashSelect = new XXHash(4384);
 
+    Mesh _mesh;
     MaterialPropertyBlock _materialOption;
 
     float GetDistance(int index)
@@ -86,6 +89,13 @@ public class CubeCluster : MonoBehaviour
         return Quaternion.Euler(theta, phi + vphi * Time.time, 0);
     }
 
+    Quaternion GetScatterRotation(int index)
+    {
+        var theta = _hashTheta.Range(-_thetaRange, _thetaRange, index + 10000);
+        var phi = _hashPhi.Range(-180.0f, 180.0f, index + 10000);
+        return Quaternion.Euler(theta, phi, theta + phi);
+    }
+
     float GetScale(Vector3 position)
     {
         var noffs = Vector3.up * _noiseSpeed * Time.time;
@@ -95,18 +105,25 @@ public class CubeCluster : MonoBehaviour
 
     void Update()
     {
+        if (_mesh == null)
+            _mesh = BuildMesh();
+
         if (_materialOption == null)
             _materialOption  = new MaterialPropertyBlock();
+
+        //_transition = 0.5f - Mathf.Cos(Mathf.Min(Time.time % 10, Mathf.PI * 2)) * 0.5f;
 
         for (var i = 0; i < _cubeCount; i++)
         {
             var distance = GetDistance(i);
             var rotation = GetRotation(i);
+            var rotation2 = GetScatterRotation(i);
             var position = rotation * new Vector3(0, 0, distance);
             var position2 = GetScatterPosition(i);
             var scale = GetScale(position);
 
             position = Vector3.Lerp(position, position2, _transition);
+            rotation = Quaternion.Slerp(rotation, rotation2, _transition);
 
             var matrix = Matrix4x4.TRS(position, rotation, Vector3.one * scale);
 
@@ -120,5 +137,98 @@ public class CubeCluster : MonoBehaviour
                 _mesh, matrix, _material,
                 0, null, 0, _materialOption);
         }
+    }
+
+    Mesh BuildMesh()
+    {
+        Vector3[] vertices =
+        {
+            new Vector3(+0.5f, +0.5f, +0.5f),
+            new Vector3(-0.5f, +0.5f, +0.5f),
+            new Vector3(+0.5f, -0.5f, +0.5f),
+            new Vector3(-0.5f, -0.5f, +0.5f),
+
+            new Vector3(-0.5f, +0.5f, -0.5f),
+            new Vector3(+0.5f, +0.5f, -0.5f),
+            new Vector3(-0.5f, -0.5f, -0.5f),
+            new Vector3(+0.5f, -0.5f, -0.5f),
+
+            new Vector3(+0.5f, +0.5f, +0.5f),
+            new Vector3(+0.5f, +0.5f, -0.5f),
+            new Vector3(-0.5f, +0.5f, +0.5f),
+            new Vector3(-0.5f, +0.5f, -0.5f),
+
+            new Vector3(+0.5f, -0.5f, -0.5f),
+            new Vector3(+0.5f, -0.5f, +0.5f),
+            new Vector3(-0.5f, -0.5f, -0.5f),
+            new Vector3(-0.5f, -0.5f, +0.5f),
+
+            new Vector3(+0.5f, +0.5f, +0.5f),
+            new Vector3(+0.5f, -0.5f, +0.5f),
+            new Vector3(+0.5f, +0.5f, -0.5f),
+            new Vector3(+0.5f, -0.5f, -0.5f),
+
+            new Vector3(-0.5f, -0.5f, +0.5f),
+            new Vector3(-0.5f, +0.5f, +0.5f),
+            new Vector3(-0.5f, -0.5f, -0.5f),
+            new Vector3(-0.5f, +0.5f, -0.5f)
+        };
+
+        Vector2[] uvs =
+        {
+            new Vector2(0, 1),
+            new Vector2(1, 1),
+            new Vector2(0, 0),
+            new Vector2(1, 0),
+
+            new Vector2(-1, -1),
+            new Vector2(-1, -1),
+            new Vector2(-1, -1),
+            new Vector2(-1, -1),
+
+            new Vector2(-1, -1),
+            new Vector2(-1, -1),
+            new Vector2(-1, -1),
+            new Vector2(-1, -1),
+
+            new Vector2(-1, -1),
+            new Vector2(-1, -1),
+            new Vector2(-1, -1),
+            new Vector2(-1, -1),
+
+            new Vector2(-1, -1),
+            new Vector2(-1, -1),
+            new Vector2(-1, -1),
+            new Vector2(-1, -1),
+
+            new Vector2(-1, -1),
+            new Vector2(-1, -1),
+            new Vector2(-1, -1),
+            new Vector2(-1, -1)
+        };
+
+        int[] indices = new int[vertices.Length / 4 * 6];
+
+        var vi = 0;
+        for (var ii = 0; ii < indices.Length;)
+        {
+            indices[ii++] = vi;
+            indices[ii++] = vi + 1;
+            indices[ii++] = vi + 2;
+            indices[ii++] = vi + 1;
+            indices[ii++] = vi + 3;
+            indices[ii++] = vi + 2;
+            vi += 4;
+        }
+
+        var mesh = new Mesh();
+        mesh.hideFlags = HideFlags.DontSave;
+        mesh.vertices = vertices;
+        mesh.uv = uvs;
+        mesh.SetIndices(indices, MeshTopology.Triangles, 0);
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+
+        return mesh;
     }
 }
